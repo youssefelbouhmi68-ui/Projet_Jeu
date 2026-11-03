@@ -28,7 +28,7 @@ TAILLE_EQUIPE = 3
 # ── Création d'équipe ────────────────────────────────────────────────────────
 
 def creer_equipe():
-     """Le joueur compose son équipe de 3 personnages (sans doublon)."""
+    """Le joueur compose son équipe de 3 personnages (sans doublon)."""
     tous = get_tous_personnages()
     if len(tous) < TAILLE_EQUIPE:
         raise ErreurBaseDeDonnees("Pas assez de personnages en base. Lance : python db_init.py")
@@ -167,11 +167,12 @@ def lancer_partie(nom_joueur):
     # ── Fin de partie ────────────────────────────────────────────────────────
     sauvegarder_score(nom_joueur, vagues_survecues)
     rang, total = get_rang(vagues_survecues)
+    rang_txt = "1er" if rang == 1 else f"{rang}e"
 
     print(f"\n{SEPARATEUR}")
     print(f"  🏁 Partie terminée{' (abandon)' if abandon else ''}, {nom_joueur} !")
     print(f"     Ton score : {vagues_survecues} vague(s) survécue(s)")
-    print(f"     Classement : {rang}e sur {total} partie(s) jouée(s)")
+    print(f"     Classement : {rang_txt} sur {total} partie(s) jouée(s)")
     if rang == 1 and vagues_survecues > 0:
         print("     🏆 NOUVEAU RECORD !")
     print("  ✅  Score sauvegardé.")
