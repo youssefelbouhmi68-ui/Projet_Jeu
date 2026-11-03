@@ -1,9 +1,18 @@
+"""
+db_init.py
+Initialise la base MongoDB avec les personnages et les monstres.
 
+    python db_init.py                 # (ré)insère personnages et monstres, garde les scores
+    python db_init.py --reset-scores  # efface aussi le classement
+"""
 
-from pymongo import MongoClient
+import argparse
+import sys
 
-MONGO_URI = "mongodb://localhost:27017/"
-DB_NAME = "jeu_video"
+from pymongo import ASCENDING, DESCENDING
+from pymongo.errors import PyMongoError
+
+from utils import get_db, verifier_connexion, fermer_connexion, ErreurBaseDeDonnees
 
 PERSONNAGES = [
     {"nom": "Guerrier",   "attaque": 15, "defense": 10, "pv": 100},
@@ -32,25 +41,51 @@ MONSTRES = [
 ]
 
 
-def init_db():
-    client = MongoClient(MONGO_URI)
-    db = client[DB_NAME]
+def init_db(reset_scores=False):
+    """(Ré)insère personnages et monstres ; le classement est conservé par défaut."""
+    db = get_db()
 
-    # Réinitialise les collections pour éviter les doublons
     db.personnages.drop()
     db.monstres.drop()
-    db.scores.drop()
+    # Copies : insert_many ajoute un champ _id aux dictionnaires passés
+    db.personnages.insert_many([dict(p) for p in PERSONNAGES])
+    db.monstres.insert_many([dict(m) for m in MONSTRES])
+    db.personnages.create_index([("nom", ASCENDING)], unique=True)
+    db.monstres.create_index([("nom", ASCENDING)], unique=True)
 
-    db.personnages.insert_many(PERSONNAGES)
-    db.monstres.insert_many(MONSTRES)
+    if reset_scores:
+        db.scores.drop()
+    db.scores.create_index([("vagues", DESCENDING), ("date", ASCENDING)])
 
-    print(f"✅  {db.personnages.count_documents({})} personnages insérés.")
-    print(f"✅  {db.monstres.count_documents({})} monstres insérés.")
-    print("✅  Collection scores initialisée.")
-    print("\n🎮  Base de données prête ! Lance le jeu avec : python main.py")
+    print(f"  ✅  {db.personnages.count_documents({})} personnages insérés.")
+    print(f"  ✅  {db.monstres.count_documents({})} monstres insérés.")
+    if reset_scores:
+        print("  ✅  Classement réinitialisé.")
+    else:
+        print(f"  ✅  Classement conservé ({db.scores.count_documents({})} score(s)).")
 
-    client.close()
+
+def main():
+    parser = argparse.ArgumentParser(description="Initialise la base MongoDB du jeu.")
+    parser.add_argument("--reset-scores", action="store_true",
+                        help="efface aussi l'historique des scores")
+    args = parser.parse_args()
+
+    try:
+        verifier_connexion()
+        init_db(reset_scores=args.reset_scores)
+    except ErreurBaseDeDonnees as e:
+        print(f"\n  ❌ {e}\n")
+        return 1
+    except PyMongoError as e:
+        print(f"\n  ❌ Erreur MongoDB : {e}\n")
+        return 1
+    finally:
+        fermer_connexion()
+
+    print("\n  🎮 Base de données prête ! Lance le jeu avec : python main.py")
+    return 0
 
 
 if __name__ == "__main__":
-    init_db()
+    sys.exit(main())
