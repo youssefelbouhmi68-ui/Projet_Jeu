@@ -28,7 +28,6 @@ jeu_video_python/
 ├── tests/
 │   └── test_models.py # Tests unitaires (sans MongoDB)
 ├── requirements.txt
-├── MODIFICATIONS.md   # Liste des améliorations
 └── README.md
 ```
 
